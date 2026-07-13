@@ -2,6 +2,7 @@ import streamlit as st
 import yfinance as yf
 import plotly.graph_objects as go
 import pandas as pd
+import numpy as np
 import time
 
 st.set_page_config(page_title="Valens Wealth | Otonom Varlık Yönetimi", layout="wide", initial_sidebar_state="collapsed")
@@ -41,9 +42,12 @@ elif st.session_state.page == 'dashboard':
     
     @st.cache_data(ttl=60)
     def get_live_data():
-        return yf.download("BTC-USD", period="1d", interval="15m", progress=False)
+        data = yf.download("BTC-USD", period="1d", interval="15m", progress=False)
+        # YFINANCE HATASINI EZİP GEÇEN O KRİTİK FİLTRE BURADA:
+        if isinstance(data.columns, pd.MultiIndex):
+            data.columns = data.columns.droplevel(1)
+        return data
 
-    # Değişkenleri baştan tanımlıyoruz (Eğer veri çekilemezse hata vermemesi için)
     current_price_str = "$ -"
     entry_price_str = "$ -"
     take_profit_str = "$ -"
@@ -55,14 +59,14 @@ elif st.session_state.page == 'dashboard':
         fig.update_layout(margin=dict(l=20, r=20, t=20, b=20), height=400, template="plotly_white", xaxis_rangeslider_visible=False)
         st.plotly_chart(fig, use_container_width=True)
         
-        # Anlık fiyattan matematiksel olarak SL ve TP hesaplıyoruz
-        current_price = df['Close'].iloc[-1]
+        # Sayıyı saf ve tertemiz hale getirip matematikte kullanıyoruz
+        current_price = float(df['Close'].iloc[-1])
         current_price_str = f"${current_price:,.2f}"
-        entry_price_str = f"${current_price:,.2f}" # Anlık fiyattan giriş
-        take_profit_str = f"${current_price * 1.045:,.2f}" # %4.5 Kâr Hedefi
-        stop_loss_str = f"${current_price * 0.982:,.2f}" # %1.8 Risk Kesimi
-    except:
-        st.warning("Piyasa verisi çekiliyor...")
+        entry_price_str = f"${current_price:,.2f}" 
+        take_profit_str = f"${current_price * 1.045:,.2f}" 
+        stop_loss_str = f"${current_price * 0.982:,.2f}" 
+    except Exception as e:
+        st.warning("Piyasa verisi çekiliyor veya güncelleniyor...")
 
     st.markdown("---")
     st.subheader("Valens AI Otonom Karar Motoru")
@@ -77,7 +81,6 @@ elif st.session_state.page == 'dashboard':
             time.sleep(1.5)
             status.update(label="Analiz Tamamlandı!", state="complete", expanded=False)
         
-        # O OLAY YARATACAK İŞLEM SİNYALİ TABLOSU EKLENDİ
         st.markdown(f"""
         <div style="background-color: #0E1117; padding: 25px; border-radius: 12px; border: 1px solid #2D3748; font-family: 'Courier New', Courier, monospace; color: #E2E8F0; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);">
             <div style="text-align: center; border-bottom: 1px solid #2D3748; padding-bottom: 15px; margin-bottom: 20px;">
