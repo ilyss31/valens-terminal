@@ -894,6 +894,21 @@ with col_right:
         spark_cols = st.columns(3)
         macd_color = "#3FAE6A" if float(ind["hist"].iloc[-1]) >= 0 else "#C0453B"
         rsi_color = "#C0453B" if sig["rsi_val"] > 70 else "#3FAE6A" if sig["rsi_val"] < 30 else "#D4AF37"
+        
+        with spark_cols[0]:
+            st.markdown('<div class="price-label">PRICE (30)</div>', unsafe_allow_html=True)
+            mini_spark(raw_df["Close"], "#D4AF37")
+        with spark_cols[1]:
+            st.markdown('<div class="price-label">RSI (30)</div>', unsafe_allow_html=True)
+            mini_spark(ind["rsi"], rsi_color)
+        with spark_cols[2]:
+            st.markdown('<div class="price-label">MACD HIST (30)</div>', unsafe_allow_html=True)
+            mini_spark(ind["hist"], macd_color)
+        """, unsafe_allow_html=True)
+
+        spark_cols = st.columns(3)
+        macd_color = "#3FAE6A" if float(ind["hist"].iloc[-1]) >= 0 else "#C0453B"
+        rsi_color = "#C0453B" if sig["rsi_val"] > 70 else "#3FAE6A" if sig["rsi_val"] < 30 else "#D4AF37"
         with spark_cols[0]:
             st.markdown('<div class="price-label">PRICE (30)</div>', unsafe_allow_html=True)
             mini_spark(raw_df["Close"], "#D4AF37")
