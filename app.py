@@ -57,24 +57,37 @@ aside{background:var(--panel);min-height:0;overflow:auto}.left{border-right:1px 
 .flow{margin:8px;padding:10px;border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:5px;background:var(--panel2)}
 .flow.buy{border-left-color:var(--green)}.flow.sell{border-left-color:var(--red)}
 .flow h4{font-size:11px;display:flex;justify-content:space-between}.flow time{font-size:9px;color:var(--muted);font-weight:400}.flow .act{margin:6px 0 4px;font:700 11px 'IBM Plex Mono'}.flow p{font-size:9px;color:var(--muted);line-height:1.55}
-.center{min-width:0;display:flex;flex-direction:column;overflow:hidden}
-.decision-desk{display:grid;grid-template-columns:1.22fr 1fr 1fr;gap:8px;padding:9px;background:#07101d;border-bottom:1px solid var(--line)}
+.center{min-width:0;display:flex;flex-direction:column;overflow:auto}
+.decision-desk{display:grid;grid-template-columns:1.22fr 1fr 1fr;gap:8px;padding:9px;background:#07101d;border-bottom:1px solid var(--line);flex-shrink:0}
 .signal-main,.tradecard{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:9px}
-.signal-main{border-color:rgba(212,175,55,.38)}
+.signal-main{border-color:rgba(212,175,55,.38);box-shadow:0 0 18px rgba(212,175,55,.08)}
 .kicker{font-size:9px;color:var(--gold);letter-spacing:1px;font-weight:700}.signalrow{display:flex;align-items:end;justify-content:space-between;margin-top:3px}
 .selltxt{font:700 22px 'IBM Plex Mono';color:var(--red)}.buytxt{font:700 17px 'IBM Plex Mono';color:var(--green)}
 .conf{font:10px 'IBM Plex Mono';color:var(--gold)}.why{font-size:9px;color:var(--muted);line-height:1.5;margin-top:6px}
 .tradecard h4{font-size:10px;color:var(--text);margin-bottom:6px}.tradecard .tf{color:var(--gold);font:9px 'IBM Plex Mono'}
 .levels{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}.lev{background:#07101c;padding:5px;border-radius:3px}.lev small{display:block;font-size:8px;color:var(--muted)}.lev b{font:600 10px 'IBM Plex Mono'}.entry{color:var(--blue)}.stop{color:var(--red)}.target{color:var(--green)}
-.charthead{height:35px;display:flex;align-items:center;gap:10px;padding:0 12px;background:#080f1a;border-bottom:1px solid var(--line)}
+.charthead{height:35px;display:flex;align-items:center;gap:10px;padding:0 12px;background:#080f1a;border-bottom:1px solid var(--line);flex-shrink:0}
 .charthead b{font:11px 'IBM Plex Mono';color:var(--gold)}.tfbtn{font:10px 'IBM Plex Mono';border:0;background:transparent;color:var(--muted);cursor:pointer;padding:5px}.tfbtn.on{color:var(--gold);border:1px solid rgba(212,175,55,.3);border-radius:3px}
-.chartwrap{height:430px;position:relative;background:#060d18;overflow:hidden;flex-shrink:0}
+.chartwrap{height:330px;position:relative;background:#060d18;overflow:hidden;flex-shrink:0}
 iframe{height:100%;width:100%;border:0}
 .zones{position:absolute;inset:0;pointer-events:none;z-index:4}
 .zone{position:absolute;left:8px;border:1px solid;border-radius:2px;opacity:.93;display:flex;align-items:center;padding-left:7px;font:600 9px 'IBM Plex Mono'}
 .zone.r{background:linear-gradient(90deg,rgba(255,80,109,.30),rgba(255,80,109,.04));border-color:rgba(255,80,109,.8);color:#ff8498}
 .zone.s{background:linear-gradient(90deg,rgba(0,200,150,.30),rgba(0,200,150,.04));border-color:rgba(0,200,150,.8);color:#66e6c2}
 .zone em{font-style:normal;opacity:.8;margin-left:5px;font-size:8px}
+.analysis{padding:10px 12px;border-top:1px solid var(--line);background:#080f1a}
+.analysis .atitle{font-size:10px;color:var(--gold);letter-spacing:1px;font-weight:700;margin-bottom:7px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:9px}
+.stat{background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:6px 8px}
+.stat small{display:block;font-size:8px;color:var(--muted);letter-spacing:.6px}.stat b{font:600 12px 'IBM Plex Mono'}
+.analysis p{font-size:11px;color:var(--text);line-height:1.6;opacity:.9}
+.upcoming{padding:10px 12px;border-top:1px solid var(--line);background:#07101c}
+.upcoming .atitle{font-size:10px;color:var(--gold);letter-spacing:1px;font-weight:700;margin-bottom:8px}
+.newsrow{display:flex;gap:9px;padding:8px;border:1px solid var(--line);border-radius:5px;background:var(--panel2);margin-bottom:7px}
+.newsrow .tm{font:600 10px 'IBM Plex Mono';color:var(--gold);min-width:52px}
+.newsrow .body{flex:1}.newsrow .body b{font-size:11px}.imp{color:#ff8498;font-size:9px;margin-left:5px}
+.newsrow .body p{font-size:9px;color:var(--muted);line-height:1.5;margin-top:3px}
+.newsrow .exp{font-size:9px;color:var(--text);opacity:.85;margin-top:3px}
 .bottomnote{padding:7px 12px;background:#07101c;border-top:1px solid var(--line);font-size:9px;color:var(--muted)}
 .event{margin:9px;border:1px solid var(--line);border-radius:6px;background:var(--panel2);overflow:hidden}
 .eventtop{padding:8px;display:flex;align-items:center;gap:6px;background:rgba(212,175,55,.06);border-bottom:1px solid var(--line)}.eventtop b{font-size:10px}.eventtop time{font-size:9px;color:var(--muted);margin-left:auto}
@@ -111,6 +124,7 @@ iframe{height:100%;width:100%;border:0}
     </aside>
 
     <section class="center">
+      <!-- AL/SAT SİNYALİ EN ÜSTTE -->
       <div class="decision-desk">
         <div class="signal-main">
           <div class="kicker">AI SIGNAL ENGINE · XAU/USD</div>
@@ -131,20 +145,41 @@ iframe{height:100%;width:100%;border:0}
 
       <div class="charthead">
         <b>XAU/USD · GOLD SPOT</b>
-        <button class="tfbtn">15M</button><button class="tfbtn">30M</button><button class="tfbtn">1H</button><button class="tfbtn on">4H</button><button class="tfbtn">1D</button>
+        <button class="tfbtn">15M</button><button class="tfbtn">30M</button><button class="tfbtn on">1H</button><button class="tfbtn">4H</button><button class="tfbtn">1D</button>
       </div>
 
       <div class="chartwrap">
         <iframe src="https://www.tradingview.com/widgetembed/?symbol=OANDA%3AXAUUSD&interval=60&hidesidetoolbar=0&hidetoptoolbar=0&symboledit=1&saveimage=1&toolbarbg=060d18&studies=RSI%4014%7CMACD%4012%2C26%2C9&theme=dark&style=1&timezone=Europe%2FIstanbul&withdateranges=1&locale=en" allowfullscreen></iframe>
         <div class="zones">
-          <div class="zone r" style="top:17%;width:44%;height:24px">R3 · 4,155 <em>HIGH VOLUME</em></div>
-          <div class="zone r" style="top:29%;width:68%;height:28px">R2 · 4,118 <em>SUPPLY ZONE</em></div>
-          <div class="zone r" style="top:40%;width:88%;height:31px">R1 · 4,085 <em>MAJOR LIQUIDITY</em></div>
-          <div class="zone s" style="top:58%;width:92%;height:31px">S1 · 4,040 <em>DEMAND ZONE</em></div>
-          <div class="zone s" style="top:72%;width:74%;height:27px">S2 · 4,000 <em>PSYCHOLOGICAL LEVEL</em></div>
-          <div class="zone s" style="top:84%;width:48%;height:23px">S3 · 3,960 <em>VOLUME SUPPORT</em></div>
+          <div class="zone r" style="top:16%;width:44%;height:22px">R2 · 4,118 <em>SUPPLY ZONE</em></div>
+          <div class="zone r" style="top:34%;width:86%;height:26px">R1 · 4,085 <em>MAJOR LIQUIDITY</em></div>
+          <div class="zone s" style="top:62%;width:90%;height:26px">S1 · 4,040 <em>DEMAND ZONE</em></div>
+          <div class="zone s" style="top:80%;width:60%;height:22px">S2 · 4,000 <em>PSYCHOLOGICAL LEVEL</em></div>
         </div>
       </div>
+
+      <!-- CANLI GRAFİK ANALİZİ -->
+      <div class="analysis">
+        <div class="atitle">📊 CANLI GRAFİK ANALİZİ · XAU/USD 1H</div>
+        <div class="stats">
+          <div class="stat"><small>TREND</small><b class="down">DÜŞÜŞ ▼</b></div>
+          <div class="stat"><small>RSI (14)</small><b class="down">38.4</b></div>
+          <div class="stat"><small>MACD</small><b class="down">NEGATİF</b></div>
+          <div class="stat"><small>EMA 50/200</small><b class="down">ÖLÜM KESİŞİMİ</b></div>
+        </div>
+        <p>Fiyat 4,085 arz bölgesinden reddedildi ve 1 saatlik grafikte kısa vadeli EMA'ların altında işlem görüyor. RSI 40 eşiğinin altında; satıcılar kontrolde fakat henüz aşırı satım bölgesi değil. MACD histogramı negatif genişliyor — momentum satış yönlü. <b>4,040 kritik destek:</b> altında saatlik kapanış gelirse 4,000 psikolojik seviyesi hedeflenir. Tepki alımları için 4,040 üzerinde tutunma ve 15M mum teyidi beklenmeli.</p>
+      </div>
+
+      <!-- YAKLAŞAN ÖNEMLİ HABERLER -->
+      <div class="upcoming">
+        <div class="atitle">🗓️ YAKLAŞAN ÖNEMLİ HABERLER · NELER BEKLENMELİ</div>
+        <div class="newsrow"><div class="tm">15:15<br>UTC</div><div class="body"><b>🇪🇺 ECB Faiz Kararı<span class="imp">★★★ YÜKSEK</span></b><p>Beklenti %2.40 · Önceki %2.40</p><div class="exp"><b>Beklenti:</b> Faiz sabit tahmin ediliyor. Lagarde'ın basın toplantısındaki ton belirleyici — güvercin sinyal EUR'yu güçlendirip USD baskısıyla altını yukarı taşıyabilir, şahin ton tersi.</div></div></div>
+        <div class="newsrow"><div class="tm">15:30<br>UTC</div><div class="body"><b>🇺🇸 US İşsizlik Başvuruları<span class="imp">★★★ YÜKSEK</span></b><p>Beklenti 215K · Önceki 209K</p><div class="exp"><b>Beklenti:</b> Beklenti altı (güçlü istihdam) veri USD'yi destekler, altın için baskı; beklenti üstü zayıf veri altını destekler.</div></div></div>
+        <div class="newsrow"><div class="tm">15:45<br>UTC</div><div class="body"><b>🇪🇺 ECB Basın Açıklaması<span class="imp">★★★ YÜKSEK</span></b><p>Lagarde konuşması</p><div class="exp"><b>Beklenti:</b> "Yakında faiz indirimi" ifadesi altını hızla yukarı çekebilir; enflasyon vurgusu ise satış tetikler. Volatilite yüksek olacak.</div></div></div>
+        <div class="newsrow"><div class="tm">20:00<br>UTC</div><div class="body"><b>🇺🇸 10Y TIPS İhalesi<span class="imp">★★ ORTA</span></b><p>Önceki %2.169</p><div class="exp"><b>Beklenti:</b> Yüksek reel getiri altın için negatif; zayıf talep altını destekler.</div></div></div>
+        <p style="font-size:8px;color:var(--muted);margin-top:4px">Kaynak mantığı: Investing.com ekonomik takvimi · veriler doğrulama gerektirir.</p>
+      </div>
+
       <div class="bottomnote">Hacim blokları: görsel işlem bölgeleridir; gerçek zamanlı emir defteri veya doğrulanmış kurumsal akış verisi değildir.</div>
     </section>
 
@@ -169,4 +204,4 @@ document.querySelectorAll('.tfbtn').forEach(x=>x.onclick=()=>{document.querySele
 </html>
 """
 
-components.html(TERMINAL_HTML, height=980, scrolling=False)
+components.html(TERMINAL_HTML, height=1180, scrolling=True)
