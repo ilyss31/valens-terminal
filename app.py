@@ -56,6 +56,9 @@ aside{background:var(--panel);min-height:0;overflow:auto}.left{border-right:1px 
 .ph{height:38px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid var(--line)}
 .ph b{font-size:10px;color:var(--gold);letter-spacing:1.2px}.badge{font:9px 'IBM Plex Mono';color:var(--gold);border:1px solid rgba(212,175,55,.3);padding:2px 6px;border-radius:9px}
 .simwarn{font:8px 'IBM Plex Mono';color:#ffb27a;padding:4px 12px;background:rgba(255,120,60,.08);border-bottom:1px solid var(--line)}
+.netdelta{margin:8px;padding:8px 10px;border-radius:5px;font:700 12px 'IBM Plex Mono';text-align:center;border:1px solid var(--line);background:var(--panel2);letter-spacing:.5px}
+.netdelta.buy{color:var(--green);border-color:rgba(0,200,150,.4);box-shadow:0 0 12px rgba(0,200,150,.1)}
+.netdelta.sell{color:var(--red);border-color:rgba(255,80,109,.4);box-shadow:0 0 12px rgba(255,80,109,.1)}
 .flow{margin:8px;padding:10px;border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:5px;background:var(--panel2);animation:fadein .5s ease}
 @keyframes fadein{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
 .flow.buy{border-left-color:var(--green)}.flow.sell{border-left-color:var(--red)}
@@ -73,7 +76,15 @@ aside{background:var(--panel);min-height:0;overflow:auto}.left{border-right:1px 
 .pnl{font:8px 'IBM Plex Mono';color:var(--green);margin-top:5px;text-align:center;background:rgba(0,200,150,.07);padding:3px;border-radius:3px}
 .charthead{height:35px;display:flex;align-items:center;gap:10px;padding:0 12px;background:#080f1a;border-bottom:1px solid var(--line);flex-shrink:0}
 .charthead b{font:11px 'IBM Plex Mono';color:var(--gold)}.tfbtn{font:10px 'IBM Plex Mono';border:0;background:transparent;color:var(--muted);cursor:pointer;padding:5px}.tfbtn.on{color:var(--gold);border:1px solid rgba(212,175,55,.3);border-radius:3px}
-.chartwrap{height:330px;position:relative;background:#060d18;overflow:hidden;flex-shrink:0}
+.chartzone{display:flex;height:330px;flex-shrink:0}
+.volprofile{width:150px;background:#060b14;border-right:1px solid var(--line);position:relative;overflow:hidden}
+.vphead{font:8px 'IBM Plex Mono';color:var(--gold);text-align:center;padding:3px 0;border-bottom:1px solid var(--line);letter-spacing:.5px}
+.vpbar{position:absolute;right:0;height:9px;display:flex;align-items:center;justify-content:flex-end;padding-right:4px;font:600 7px 'IBM Plex Mono';color:#cfe;white-space:nowrap;border-radius:2px 0 0 2px}
+.vpbar.buy{background:linear-gradient(90deg,rgba(0,200,150,.15),rgba(0,200,150,.75))}
+.vpbar.sell{background:linear-gradient(90deg,rgba(255,80,109,.15),rgba(255,80,109,.75))}
+.vpbar.poc{box-shadow:0 0 0 1px var(--gold);color:var(--gold);font-weight:800}
+.vpprice{position:absolute;left:3px;font:7px 'IBM Plex Mono';color:var(--muted);pointer-events:none;z-index:2}
+.chartwrap{flex:1;position:relative;background:#060d18;overflow:hidden}
 iframe{height:100%;width:100%;border:0}
 .zones{position:absolute;inset:0;pointer-events:none;z-index:4}
 .zone{position:absolute;left:8px;right:auto;border-radius:2px;display:flex;align-items:center;padding-left:7px;font:600 9px 'IBM Plex Mono';border-style:solid}
@@ -98,7 +109,7 @@ iframe{height:100%;width:100%;border:0}
 .event{margin:9px;border:1px solid var(--line);border-radius:6px;background:var(--panel2);overflow:hidden}
 .eventtop{padding:8px;display:flex;align-items:center;gap:6px;background:rgba(212,175,55,.06);border-bottom:1px solid var(--line)}.eventtop b{font-size:10px}.eventtop time{font-size:9px;color:var(--muted);margin-left:auto}
 .eventbody{padding:8px}.eventbody p{font-size:9px;color:var(--muted);line-height:1.45;margin-bottom:6px}.scenario{font-size:9px;padding:6px;border-left:3px solid;margin-top:5px;line-height:1.45}.bull{border-color:var(--green);background:rgba(0,200,150,.06)}.bear{border-color:var(--red);background:rgba(255,80,109,.06)}
-@media(max-width:1050px){.shell{grid-template-columns:225px minmax(500px,1fr)}.right{display:none}.brand{min-width:auto}.tabs{display:none}.stats{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:1050px){.shell{grid-template-columns:225px minmax(500px,1fr)}.right{display:none}.brand{min-width:auto}.tabs{display:none}.stats{grid-template-columns:repeat(3,1fr)}.volprofile{width:110px}}
 </style>
 </head>
 <body>
@@ -123,8 +134,9 @@ iframe{height:100%;width:100%;border:0}
 
   <main class="shell">
     <aside class="left">
-      <div class="ph"><b>SMART MONEY FLOW</b><span class="badge">COT/OI MODEL</span></div>
-      <div class="simwarn">⚠ SİMÜLASYON — Gerçek hedge fon emirleri halka açık değildir. Bu akış COT/Open-Interest davranışını modelleyen bir simülasyondur. Gerçek veri için CFTC/CME API entegrasyonu gerekir.</div>
+      <div class="ph"><b>ORDER FLOW · BUY/SELL</b><span class="badge">AGREGA</span></div>
+      <div class="simwarn">⚠ SİMÜLASYON — Tekil emir sahipleri halka açık değildir. Bu, CME agrega hacim/Open-Interest akışını modeller. Gerçek veri için CME/Barchart/Polygon API gerekir.</div>
+      <div class="netdelta" id="netDelta">NET DELTA: — </div>
       <div id="flowFeed"></div>
     </aside>
 
@@ -152,9 +164,12 @@ iframe{height:100%;width:100%;border:0}
         <button class="tfbtn" data-int="15">15M</button><button class="tfbtn" data-int="30">30M</button><button class="tfbtn on" data-int="60">1H</button><button class="tfbtn" data-int="240">4H</button><button class="tfbtn" data-int="D">1D</button>
       </div>
 
-      <div class="chartwrap">
-        <iframe id="tvChart" src="" allowfullscreen></iframe>
-        <div class="zones" id="zones"></div>
+      <div class="chartzone">
+        <div class="volprofile"><div class="vphead">📊 HACİM PROFİLİ</div><div id="vpBars"></div></div>
+        <div class="chartwrap">
+          <iframe id="tvChart" src="" allowfullscreen></iframe>
+          <div class="zones" id="zones"></div>
+        </div>
       </div>
 
       <div class="analysis">
@@ -178,7 +193,7 @@ iframe{height:100%;width:100%;border:0}
         <p style="font-size:8px;color:var(--muted);margin-top:4px">⚠ Bu takvim manuel örnek veridir. Canlı ekonomik takvim için Investing/ForexFactory API entegrasyonu gereklidir · veriler doğrulama gerektirir.</p>
       </div>
 
-      <div class="bottomnote">İndikatör değerleri, akış ve takvim simülasyondur; gerçek zamanlı emir defteri veya doğrulanmış kurumsal veri değildir.</div>
+      <div class="bottomnote">İndikatör değerleri, akış, hacim profili ve takvim simülasyondur; gerçek zamanlı emir defteri veya doğrulanmış kurumsal veri değildir.</div>
     </section>
 
     <aside class="right">
@@ -218,7 +233,7 @@ const SYMS={
 };
 let CUR='OANDA:XAUUSD', INT='60';
 
-/* ---------- GRAFİK YÜKLEME (parite + zaman dilimi değişince yeniden yükler) ---------- */
+/* ---------- GRAFİK YÜKLEME ---------- */
 function loadChart(){
  const url='https://www.tradingview.com/widgetembed/?symbol='+encodeURIComponent(CUR)+
   '&interval='+INT+'&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=060d18'+
@@ -242,24 +257,60 @@ function drawZones(){
  });
 }
 
-/* ---------- SMART MONEY FLOW (SİMÜLASYON — COT/OI modeli) ---------- */
-const firms=['Citadel LLC','Goldman Sachs','BlackRock','Bridgewater','JPMorgan','Millennium','Renaissance','Point72','Two Sigma','Morgan Stanley'];
+/* ---------- VOLUME PROFILE (fiyat seviyesine göre hacim + buy/sell baskınlığı) ---------- */
+function drawVolProfile(){
+ const cfg=SYMS[CUR], box=document.getElementById('vpBars'); box.innerHTML='';
+ const p2t=p=>((cfg.top-p)/(cfg.top-cfg.bot))*100;
+ const rows=22, span=cfg.top-cfg.bot, step=span/rows;
+ let bars=[];
+ for(let i=0;i<rows;i++){
+   const pxLevel=cfg.top - i*step - step/2;
+   let vol=rnd(15,45);
+   cfg.sr.forEach(s=>{ if(pxLevel<=s.hi && pxLevel>=s.lo) vol+=s.vol*0.9; });
+   vol+=rnd(-6,6);
+   const buyDom = pxLevel < cfg.price ? Math.random()>0.35 : Math.random()>0.65;
+   bars.push({px:pxLevel,vol:Math.max(8,vol),buy:buyDom});
+ }
+ const maxV=Math.max(...bars.map(b=>b.vol)), pocPx=bars.reduce((a,b)=>b.vol>a.vol?b:a).px;
+ bars.forEach(b=>{
+   const w=Math.max(14,(b.vol/maxV)*130);
+   const el=document.createElement('div');
+   el.className='vpbar '+(b.buy?'buy':'sell')+(Math.abs(b.px-pocPx)<step/2?' poc':'');
+   el.style.top=p2t(b.px)+'%'; el.style.width=w+'px';
+   el.textContent=Math.round(b.vol);
+   box.appendChild(el);
+   const pl=document.createElement('div');
+   pl.className='vpprice'; pl.style.top=p2t(b.px)+'%';
+   pl.textContent=b.px.toLocaleString('en-US',{maximumFractionDigits:cfg.dec>2?3:0});
+   box.appendChild(pl);
+ });
+}
+
+/* ---------- ORDER FLOW · AGREGA BUY/SELL (SİMÜLASYON) ---------- */
 const feed=document.getElementById('flowFeed');
+let netLots=0, flowLog=[];
 function utc(){return new Date().toUTCString().slice(17,22)+' UTC';}
 function rnd(a,b){return a+Math.random()*(b-a);}
+const flowTags=['Agresif satıcı','Alım baskısı','Kurumsal blok','Likidite avı','Piyasa emri','Stop tetikleme','Momentum akışı'];
 function addFlow(){
  const cfg=SYMS[CUR], buy=Math.random()>0.5;
- const firm=firms[Math.floor(Math.random()*firms.length)];
- const lots=Math.round(rnd(400,5000)/50)*50;
- const entry=cfg.price+rnd(-cfg.step*2,cfg.step*2);
- const fmt=entry.toLocaleString('en-US',{minimumFractionDigits:cfg.dec,maximumFractionDigits:cfg.dec});
+ const lots=Math.round(rnd(80,650)/10)*10;
+ const px=cfg.price+rnd(-cfg.step*2,cfg.step*2);
+ const fmt=px.toLocaleString('en-US',{minimumFractionDigits:cfg.dec,maximumFractionDigits:cfg.dec});
+ const tag=flowTags[Math.floor(Math.random()*flowTags.length)];
+ netLots += buy?lots:-lots;
+ flowLog.push(buy?lots:-lots); if(flowLog.length>14){netLots-=flowLog.shift();}
  const el=document.createElement('article');
  el.className='flow '+(buy?'buy':'sell');
- el.innerHTML='<h4>'+firm+' <time>'+utc()+'</time></h4>'+
-   '<div class="act '+(buy?'up':'down')+'">'+(buy?'▲ LONG':'▼ SHORT')+' — '+cfg.label+'</div>'+
-   '<p>'+lots.toLocaleString('en-US')+' lot · Model giriş: '+fmt+'</p>';
+ el.innerHTML='<h4><span>'+(buy?'▲ ALIM':'▼ SATIM')+'</span><time>'+utc()+'</time></h4>'+
+   '<div class="act '+(buy?'up':'down')+'">'+lots.toLocaleString('en-US')+' lot '+(buy?'BUY':'SELL')+' · '+cfg.label+'</div>'+
+   '<p>@ '+fmt+' · '+tag+'</p>';
  feed.prepend(el);
- while(feed.children.length>7) feed.removeChild(feed.lastChild);
+ while(feed.children.length>8) feed.removeChild(feed.lastChild);
+ const nd=document.getElementById('netDelta');
+ const dir=netLots>=0;
+ nd.className='netdelta '+(dir?'buy':'sell');
+ nd.textContent='NET DELTA: '+(dir?'+':'')+Math.round(netLots).toLocaleString('en-US')+' lot '+(dir?'▲ Alıcı baskın':'▼ Satıcı baskın');
 }
 
 /* ---------- AI BOT · 6 İNDİKATÖR ---------- */
@@ -299,7 +350,6 @@ function botTick(){
  else{sig='◆ NÖTR';col='var(--gold)';dir=0;}
 
  const fmt=v=>v.toLocaleString('en-US',{minimumFractionDigits:cfg.dec,maximumFractionDigits:cfg.dec});
- document.querySelectorAll('.market')[0]; // noop
  document.getElementById('sigTxt').textContent=sig;
  document.getElementById('sigTxt').style.color=col;
  document.getElementById('sigConf').textContent=conf+'% CONFIDENCE';
@@ -319,8 +369,7 @@ function botTick(){
   ', EMA 50/'+(ema50>ema200?'200 üzeri (yükseliş yapısı)':'200 altı (düşüş yapısı)')+'. Bollinger %<b>'+bollPct.toFixed(0)+'</b>, Stochastic <b>'+stoch.toFixed(1)+
   '</b>, ADX <b>'+adx.toFixed(1)+'</b> ('+(adx>25?'trend güçlü':'trend zayıf')+'). Bileşke sinyal: <b style="color:'+col+'">'+sig+'</b> — güven %'+conf+'.';
 
- /* GİRİŞ = ANLIK FİYAT · TP/SL sinyal yönüne göre */
- const d = dir===0?1:dir; // nötrde varsayılan long yapı gösterimi
+ const d = dir===0?1:dir;
  document.getElementById('scEntry').textContent=fmt(last);
  document.getElementById('scStop').textContent=fmt(last - d*cfg.scSL);
  document.getElementById('scTp').textContent=fmt(last + d*cfg.scTP);
@@ -329,16 +378,18 @@ function botTick(){
  document.getElementById('swTp').textContent=fmt(last + d*cfg.swTP);
 
  const bs=document.getElementById('botStatus'); bs.style.opacity=.35; setTimeout(()=>bs.style.opacity=1,250);
+ if(Math.random()>0.8) drawVolProfile();
 }
 
 /* ---------- PARİTE DEĞİŞTİRME ---------- */
 function switchSymbol(sym){
- CUR=sym; seedHist(); loadChart(); drawZones(); feed.innerHTML='';
+ CUR=sym; seedHist(); loadChart(); drawZones(); drawVolProfile();
+ feed.innerHTML=''; netLots=0; flowLog=[];
  for(let i=0;i<4;i++) addFlow(); botTick();
 }
 
 /* ---------- BAŞLAT ---------- */
-seedHist(); loadChart(); drawZones();
+seedHist(); loadChart(); drawZones(); drawVolProfile();
 for(let i=0;i<4;i++) addFlow(); botTick();
 setInterval(addFlow, 4500);
 setInterval(botTick, 3000);
