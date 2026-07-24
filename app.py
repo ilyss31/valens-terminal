@@ -71,8 +71,12 @@ aside{background:var(--panel);min-height:0;overflow:auto}.left{border-right:1px 
 .kicker em{font-style:normal;color:var(--green);font-size:8px}
 .signalrow{display:flex;align-items:end;justify-content:space-between;margin-top:3px}
 .sigtxt{font:700 22px 'IBM Plex Mono'}.conf{font:10px 'IBM Plex Mono';color:var(--gold)}.why{font-size:9px;color:var(--muted);line-height:1.5;margin-top:6px}
+.trigger{margin-top:7px;font:700 9px 'IBM Plex Mono';padding:5px 7px;border-radius:4px;text-align:center;letter-spacing:.5px}
+.trigger.armed{color:#07101b;background:var(--gold);box-shadow:0 0 14px rgba(212,175,55,.4)}
+.trigger.wait{color:var(--muted);background:rgba(255,255,255,.04);border:1px solid var(--line)}
 .tradecard h4{font-size:10px;color:var(--text);margin-bottom:6px}.tradecard .tf{color:var(--gold);font:9px 'IBM Plex Mono'}
-.levels{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}.lev{background:#07101c;padding:5px;border-radius:3px}.lev small{display:block;font-size:8px;color:var(--muted)}.lev b{font:600 10px 'IBM Plex Mono'}.entry{color:var(--blue)}.stop{color:var(--red)}.target{color:var(--green)}
+.levels{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:6px}.lev{background:#07101c;padding:5px;border-radius:3px}.lev small{display:block;font-size:8px;color:var(--muted)}.lev b{font:600 10px 'IBM Plex Mono'}
+.entry{color:var(--blue)}.stop{color:var(--red)}.target{color:var(--green)}
 .pnl{font:8px 'IBM Plex Mono';color:var(--green);margin-top:5px;text-align:center;background:rgba(0,200,150,.07);padding:3px;border-radius:3px}
 .charthead{height:35px;display:flex;align-items:center;gap:10px;padding:0 12px;background:#080f1a;border-bottom:1px solid var(--line);flex-shrink:0}
 .charthead b{font:11px 'IBM Plex Mono';color:var(--gold)}.tfbtn{font:10px 'IBM Plex Mono';border:0;background:transparent;color:var(--muted);cursor:pointer;padding:5px}.tfbtn.on{color:var(--gold);border:1px solid rgba(212,175,55,.3);border-radius:3px}
@@ -146,6 +150,7 @@ iframe{height:100%;width:100%;border:0}
           <div class="kicker"><span>AI SIGNAL ENGINE · <span id="sigPair">XAU/USD</span></span><em id="botStatus">● ÇALIŞIYOR</em></div>
           <div class="signalrow"><div class="sigtxt" id="sigTxt">—</div><div class="conf" id="sigConf">—</div></div>
           <div class="why" id="sigWhy">Bot indikatörleri okuyor…</div>
+          <div class="trigger wait" id="trigger">◇ GÖZLEM — Emir eşiği %87</div>
         </div>
         <div class="tradecard">
           <h4>⚡ SCALP PLAN <span class="tf">15M / 30M</span></h4>
@@ -313,7 +318,7 @@ function addFlow(){
  nd.textContent='NET DELTA: '+(dir?'+':'')+Math.round(netLots).toLocaleString('en-US')+' lot '+(dir?'▲ Alıcı baskın':'▼ Satıcı baskın');
 }
 
-/* ---------- AI BOT · 6 İNDİKATÖR ---------- */
+/* ---------- AI BOT · 6 İNDİKATÖR & EMİR EŞİĞİ LOGİĞİ ---------- */
 let price, hist=[];
 function seedHist(){
  const cfg=SYMS[CUR]; price=cfg.price; hist=[];
@@ -344,19 +349,38 @@ function botTick(){
  score+= stoch>80?-0.3: stoch<20?0.3:0;
  score+= adx>25?(macd>0?0.2:-0.2):0;
  const conf=Math.min(92,Math.max(52,Math.round(50+Math.abs(score)*22+rnd(-4,4))));
- let sig,col,dir;
- if(score>0.6){sig='▲ BUY';col='var(--green)';dir=1;}
- else if(score<-0.6){sig='▼ SELL';col='var(--red)';dir=-1;}
- else{sig='◆ NÖTR';col='var(--gold)';dir=0;}
+ const THRESHOLD=87;
+
+ // Raw direction based on score
+ let rawDir = 0;
+ if(score>0.6) rawDir = 1;
+ else if(score<-0.6) rawDir = -1;
+ else rawDir = 0;
+
+ const armed = conf >= THRESHOLD && rawDir !== 0;
+
+ // Sinyal metni (always shows direction even under threshold)
+ let sigText = '◇ GÖZLEM';
+ let sigColor = 'var(--gold)';
+ if(rawDir > 0) sigText = '▲ BUY';
+ else if(rawDir < 0) sigText = '▼ SELL';
+ if(armed){
+   sigText = rawDir>0 ? '▲ BUY' : '▼ SELL';
+   sigColor = rawDir>0 ? 'var(--green)' : 'var(--red)';
+ } else {
+   sigColor = 'var(--gold)';
+ }
 
  const fmt=v=>v.toLocaleString('en-US',{minimumFractionDigits:cfg.dec,maximumFractionDigits:cfg.dec});
- document.getElementById('sigTxt').textContent=sig;
- document.getElementById('sigTxt').style.color=col;
+ document.getElementById('sigTxt').textContent=sigText;
+ document.getElementById('sigTxt').style.color=sigColor;
  document.getElementById('sigConf').textContent=conf+'% CONFIDENCE';
  document.getElementById('sigPair').textContent=cfg.label;
  document.getElementById('anPair').textContent=cfg.label;
 
  const set=(id,val,good)=>{const e=document.getElementById(id);e.textContent=val;e.className=good>0?'up':good<0?'down':'';};
+
+ // Indicators display
  set('iRsi',rsi.toFixed(1), rsi>55?1:rsi<45?-1:0);
  set('iMacd',(macd>=0?'+':'')+macd.toFixed(cfg.dec>2?4:2), macd>0?1:-1);
  set('iEma', ema50>ema200?'GOLDEN ▲':'DEATH ▼', ema50>ema200?1:-1);
@@ -367,15 +391,35 @@ function botTick(){
  document.getElementById('anText').innerHTML=
   'Bot 6 indikatörü '+cfg.label+' üzerinde canlı okuyor. RSI <b>'+rsi.toFixed(1)+'</b> ('+(rsi>55?'alıcı':rsi<45?'satıcı':'nötr')+'), MACD '+(macd>0?'pozitif':'negatif')+
   ', EMA 50/'+(ema50>ema200?'200 üzeri (yükseliş yapısı)':'200 altı (düşüş yapısı)')+'. Bollinger %<b>'+bollPct.toFixed(0)+'</b>, Stochastic <b>'+stoch.toFixed(1)+
-  '</b>, ADX <b>'+adx.toFixed(1)+'</b> ('+(adx>25?'trend güçlü':'trend zayıf')+'). Bileşke sinyal: <b style="color:'+col+'">'+sig+'</b> — güven %'+conf+'.';
+  '</b>, ADX <b>'+adx.toFixed(1)+'</b> ('+(adx>25?'trend güçlü':'trend zayıf')+'). Bileşke sinyal: <b style="color:'+sigColor+'">'+sigText+'</b> — güven %'+conf+'.';
 
- const d = dir===0?1:dir;
- document.getElementById('scEntry').textContent=fmt(last);
- document.getElementById('scStop').textContent=fmt(last - d*cfg.scSL);
- document.getElementById('scTp').textContent=fmt(last + d*cfg.scTP);
- document.getElementById('swEntry').textContent=fmt(last);
- document.getElementById('swStop').textContent=fmt(last - d*cfg.swSL);
- document.getElementById('swTp').textContent=fmt(last + d*cfg.swTP);
+ // Trigger UI update
+ const tg=document.getElementById('trigger');
+ if(armed){
+   tg.className='trigger armed';
+   tg.textContent='⚡ EMİR TETİKLENDİ · '+(rawDir>0?'BUY':'SELL')+' · %'+conf+' NETLİK';
+ } else {
+   tg.className='trigger wait';
+   tg.textContent='◇ GÖZLEM · %'+conf+' / %'+THRESHOLD+' eşik · yüksek olasılık bekleniyor';
+ }
+
+ // Entry/Stop/TP only when armed (>= threshold). Otherwise show observation (—)
+ if(armed){
+   const d = rawDir;
+   document.getElementById('scEntry').textContent = fmt(last);
+   document.getElementById('scStop').textContent  = fmt(last - d*cfg.scSL);
+   document.getElementById('scTp').textContent    = fmt(last + d*cfg.scTP);
+   document.getElementById('swEntry').textContent = fmt(last);
+   document.getElementById('swStop').textContent  = fmt(last - d*cfg.swSL);
+   document.getElementById('swTp').textContent    = fmt(last + d*cfg.swTP);
+ } else {
+   document.getElementById('scEntry').textContent = '—';
+   document.getElementById('scStop').textContent  = '—';
+   document.getElementById('scTp').textContent    = '—';
+   document.getElementById('swEntry').textContent = '—';
+   document.getElementById('swStop').textContent  = '—';
+   document.getElementById('swTp').textContent    = '—';
+ }
 
  const bs=document.getElementById('botStatus'); bs.style.opacity=.35; setTimeout(()=>bs.style.opacity=1,250);
  if(Math.random()>0.8) drawVolProfile();
