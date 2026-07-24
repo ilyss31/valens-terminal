@@ -322,6 +322,140 @@ function addFlow(){
  nd.textContent='NET DELTA: '+(dir?'+':'')+Math.round(netLots).toLocaleString('en-US')+' lot '+(dir?'▲ Alıcı baskın':'▼ Satıcı baskın');
 }
 
+/* ---------- SIGNAL HISTORY & AGGREGATION (persistence via localStorage) ---------- */
+const SIG_STORE_PREFIX = 'valens_signals_'; // key per symbol
+
+function getStoreKey(sym){ return SIG_STORE_PREFIX + sym.replace(/[:\/]/g,'_'); }
+
+function loadSignalStore(sym){
+  try{
+    const raw = localStorage.getItem(getStoreKey(sym));
+    if(!raw) return {signals:[], lastCandleIdxs:{}};
+    return JSON.parse(raw);
+  }catch(e){
+    console.warn('signal store load err',e);
+    return {signals:[], lastCandleIdxs:{}};
+  }
+}
+function saveSignalStore(sym,store){
+  try{ localStorage.setItem(getStoreKey(sym), JSON.stringify(store)); }catch(e){console.warn('save err',e); }
+}
+
+// returns numeric minutes for INT (handles 'D' as 1440)
+function tfMinutes(intv){
+  if(!intv) return 60;
+  if(intv === 'D') return 1440;
+  return parseInt(intv,10) || 60;
+}
+
+// compute candle index for timeframe
+function candleIndexForNow(tfMin){
+  return Math.floor(Date.now() / (tfMin*60*1000));
+}
+
+// record a candle-level signal only once per candle per tf
+function recordCandleSignal(sym, tf, dir){
+  if(typeof dir === 'undefined') return;
+  const tfMin = tfMinutes(tf);
+  const cIdx = candleIndexForNow(tfMin);
+  const store = loadSignalStore(sym);
+  store.lastCandleIdxs = store.lastCandleIdxs || {};
+  const lastIdx = store.lastCandleIdxs[tf] || null;
+  if(lastIdx === cIdx) return; // already recorded for this candle
+  // append
+  store.signals = store.signals || [];
+  store.signals.push({ts: Date.now(), tf: tfMin, candle: cIdx, dir: dir});
+  // keep store bounded (e.g., last 5000 entries)
+  if(store.signals.length > 5000) store.signals = store.signals.slice(-5000);
+  store.lastCandleIdxs[tf] = cIdx;
+  saveSignalStore(sym, store);
+}
+
+// compute counts in last windowMinutes
+function getCounts(sym, windowMinutes){
+  const now = Date.now();
+  const cutoff = now - windowMinutes*60*1000;
+  const store = loadSignalStore(sym);
+  const slice = (store.signals || []).filter(s => s.ts >= cutoff);
+  let buy=0, sell=0, neutral=0;
+  slice.forEach(s => { if(s.dir>0) buy++; else if(s.dir<0) sell++; else neutral++; });
+  return {buy, sell, neutral, total: slice.length};
+}
+
+// evaluate strength label from counts
+function evalStrength(buy, sell){
+  const major = Math.max(buy,sell);
+  const minor = Math.min(buy,sell);
+  if(major === 0) return {label:'NÖTR',side:'NEUTRAL'};
+  const ratio = minor===0? 999 : (major/minor);
+  const side = (buy>sell)?'BUY':'SELL';
+  if(ratio >= 3 && major >= 20) return {label:'GÜÇLÜ '+side, side};
+  if(ratio >= 1.5 && major >= 8) return {label:'ORTA '+side, side};
+  return {label:'ZAYIF '+side, side};
+}
+
+// consecutive candle confirmation (last N candles on selected TF)
+function lastNConsecutiveSame(sym, tf, n){
+  const store = loadSignalStore(sym);
+  const tfMin = tfMinutes(tf);
+  const signals = (store.signals || []).filter(s => s.tf === tfMin);
+  if(signals.length < n) return false;
+  // get last n distinct candle indices (already ensured one per candle)
+  const last = signals.slice(-n);
+  const dirs = last.map(x => x.dir);
+  if(dirs.every(d => d === dirs[0] && d !== 0)) return dirs[0]; // returns direction (1 or -1) or false
+  return false;
+}
+
+// UI: create agg UI block inside .signal-main if not exists
+function ensureAggUI(){
+  let el = document.getElementById('aggSignal');
+  if(el) return el;
+  const container = document.querySelector('.signal-main');
+  el = document.createElement('div');
+  el.id = 'aggSignal';
+  el.style.marginTop = '8px';
+  el.style.font = "700 11px 'IBM Plex Mono'";
+  el.innerHTML = '<div style="display:flex;gap:8px;align-items:center;"><div id="aggSummary" style="color:var(--muted);font-size:12px"></div><div id="aggBadge" style="padding:4px 8px;border-radius:6px;background:rgba(255,255,255,0.03);color:var(--gold);font-size:11px"></div></div><div id="aggDetail" style="margin-top:6px;font-size:10px;color:var(--muted)"></div>';
+  container.appendChild(el);
+  return el;
+}
+
+// update the agg UI with chosen windows and 3-mum confirmation
+function updateAggUI(){
+  const cfg = SYMS[CUR];
+  ensureAggUI();
+  // windows to show (can expand)
+  const windows = [15,45,60]; // minutes
+  const parts = [];
+  windows.forEach(w=>{
+    const cnt = getCounts(CUR, w);
+    const st = evalStrength(cnt.buy, cnt.sell);
+    parts.push(`${w}m: ${st.label} · B${cnt.buy}/S${cnt.sell}`);
+  });
+  const summary = document.getElementById('aggSummary');
+  const badge = document.getElementById('aggBadge');
+  const detail = document.getElementById('aggDetail');
+
+  summary.textContent = parts.join('  ·  ');
+  // highest window's strength as badge
+  const top = getCounts(CUR, 45); // default primary
+  const topEval = evalStrength(top.buy, top.sell);
+  badge.textContent = topEval.label;
+  badge.style.background = topEval.side==='BUY' ? 'linear-gradient(90deg, rgba(0,200,150,.08), rgba(0,200,150,.18))' : 'linear-gradient(90deg, rgba(255,80,109,.08), rgba(255,80,109,.18))';
+  badge.style.color = topEval.side==='BUY' ? 'var(--green)' : (topEval.side==='SELL' ? 'var(--red)' : 'var(--gold)');
+
+  // 3-candle confirmation for currently selected timeframe (INT)
+  let conf = lastNConsecutiveSame(CUR, INT, 3);
+  if(conf){
+    detail.innerHTML = '3 MUM ONAY: ' + (conf>0? '▲ BUY' : '▼ SELL') + ' · Güçlü teyit';
+    detail.style.color = conf>0 ? 'var(--green)' : 'var(--red)';
+  } else {
+    detail.innerHTML = '3 MUM ONAY: Yok';
+    detail.style.color = 'var(--muted)';
+  }
+}
+
 /* ---------- AI BOT · 6 İNDİKATÖR & EMİR EŞİĞİ LOGİĞİ (KESİN İŞLEM BADGES) ---------- */
 let price, hist=[];
 function seedHist(){
@@ -433,6 +567,10 @@ function botTick(){
    scStatusEl.textContent = '◇ GÖZLEM — Emir eşiği %'+THRESHOLD+' · %'+conf+' (Seviyeler pasif)';
  }
 
+ // Persist & aggregate signals (record per-candle, update UI)
+ recordCandleSignal(CUR, INT, rawDir);
+ updateAggUI();
+
  const bs=document.getElementById('botStatus'); bs.style.opacity=.35; setTimeout(()=>bs.style.opacity=1,250);
  if(Math.random()>0.8) drawVolProfile();
 }
@@ -442,6 +580,7 @@ function switchSymbol(sym){
  CUR=sym; seedHist(); loadChart(); drawZones(); drawVolProfile();
  feed.innerHTML=''; netLots=0; flowLog=[];
  for(let i=0;i<4;i++) addFlow(); botTick();
+ updateAggUI();
 }
 
 /* ---------- BAŞLAT ---------- */
@@ -449,6 +588,8 @@ seedHist(); loadChart(); drawZones(); drawVolProfile();
 for(let i=0;i<4;i++) addFlow(); botTick();
 setInterval(addFlow, 4500);
 setInterval(botTick, 3000);
+// show persisted aggregates immediately
+setTimeout(()=>updateAggUI(), 600);
 
 /* ---------- ETKİLEŞİMLER ---------- */
 document.querySelectorAll('.market').forEach(x=>x.onclick=()=>{
@@ -457,7 +598,7 @@ document.querySelectorAll('.market').forEach(x=>x.onclick=()=>{
 });
 document.querySelectorAll('.tfbtn').forEach(x=>x.onclick=()=>{
  document.querySelectorAll('.tfbtn').forEach(y=>y.classList.remove('on'));
- x.classList.add('on'); INT=x.dataset.int; loadChart();
+ x.classList.add('on'); INT=x.dataset.int; loadChart(); updateAggUI();
 });
 document.querySelectorAll('.tab').forEach(x=>x.onclick=()=>{
  document.querySelectorAll('.tab').forEach(y=>y.classList.remove('active')); x.classList.add('active');
