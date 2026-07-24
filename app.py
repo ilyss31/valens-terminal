@@ -74,6 +74,9 @@ aside{background:var(--panel);min-height:0;overflow:auto}.left{border-right:1px 
 .trigger{margin-top:7px;font:700 9px 'IBM Plex Mono';padding:5px 7px;border-radius:4px;text-align:center;letter-spacing:.5px}
 .trigger.armed{color:#07101b;background:var(--gold);box-shadow:0 0 14px rgba(212,175,55,.4)}
 .trigger.wait{color:var(--muted);background:rgba(255,255,255,.04);border:1px solid var(--line)}
+.trade-status{margin-top:8px;font:700 11px 'IBM Plex Mono';padding:6px;border-radius:6px;text-align:center}
+.trade-status.armed{background:var(--gold);color:#07101b;box-shadow:0 0 12px rgba(212,175,55,.12)}
+.trade-status.wait{background:rgba(255,255,255,.03);color:var(--muted);border:1px solid var(--line)}
 .tradecard h4{font-size:10px;color:var(--text);margin-bottom:6px}.tradecard .tf{color:var(--gold);font:9px 'IBM Plex Mono'}
 .levels{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:6px}.lev{background:#07101c;padding:5px;border-radius:3px}.lev small{display:block;font-size:8px;color:var(--muted)}.lev b{font:600 10px 'IBM Plex Mono'}
 .entry{color:var(--blue)}.stop{color:var(--red)}.target{color:var(--green)}
@@ -155,6 +158,7 @@ iframe{height:100%;width:100%;border:0}
         <div class="tradecard">
           <h4>⚡ SCALP PLAN <span class="tf">15M / 30M</span></h4>
           <div class="levels"><div class="lev"><small>GİRİŞ</small><b class="entry" id="scEntry">—</b></div><div class="lev"><small>STOP</small><b class="stop" id="scStop">—</b></div><div class="lev"><small>TP</small><b class="target" id="scTp">—</b></div></div>
+          <div id="scStatus" class="trade-status wait">◇ GÖZLEM — Emir eşiği %87</div>
           <div class="pnl" id="scPnl">Hedef ≈ $250 @ 2.5 lot</div>
         </div>
         <div class="tradecard">
@@ -318,7 +322,7 @@ function addFlow(){
  nd.textContent='NET DELTA: '+(dir?'+':'')+Math.round(netLots).toLocaleString('en-US')+' lot '+(dir?'▲ Alıcı baskın':'▼ Satıcı baskın');
 }
 
-/* ---------- AI BOT · 6 İNDİKATÖR & EMİR EŞİĞİ LOGİĞİ ---------- */
+/* ---------- AI BOT · 6 İNDİKATÖR & EMİR EŞİĞİ LOGİĞİ (KESİN İŞLEM BADGES) ---------- */
 let price, hist=[];
 function seedHist(){
  const cfg=SYMS[CUR]; price=cfg.price; hist=[];
@@ -404,6 +408,7 @@ function botTick(){
  }
 
  // Entry/Stop/TP only when armed (>= threshold). Otherwise show observation (—)
+ const scStatusEl = document.getElementById('scStatus');
  if(armed){
    const d = rawDir;
    document.getElementById('scEntry').textContent = fmt(last);
@@ -412,6 +417,10 @@ function botTick(){
    document.getElementById('swEntry').textContent = fmt(last);
    document.getElementById('swStop').textContent  = fmt(last - d*cfg.swSL);
    document.getElementById('swTp').textContent    = fmt(last + d*cfg.swTP);
+
+   // Scalping FINAL TRADE badge (son garanti işlem)
+   scStatusEl.className = 'trade-status armed';
+   scStatusEl.textContent = '⚡ KESİN İŞLEM · '+(rawDir>0?'BUY':'SELL')+' · %'+conf+' · '+utc();
  } else {
    document.getElementById('scEntry').textContent = '—';
    document.getElementById('scStop').textContent  = '—';
@@ -419,6 +428,9 @@ function botTick(){
    document.getElementById('swEntry').textContent = '—';
    document.getElementById('swStop').textContent  = '—';
    document.getElementById('swTp').textContent    = '—';
+
+   scStatusEl.className = 'trade-status wait';
+   scStatusEl.textContent = '◇ GÖZLEM — Emir eşiği %'+THRESHOLD+' · %'+conf+' (Seviyeler pasif)';
  }
 
  const bs=document.getElementById('botStatus'); bs.style.opacity=.35; setTimeout(()=>bs.style.opacity=1,250);
