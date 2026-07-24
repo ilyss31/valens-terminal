@@ -98,9 +98,6 @@ iframe{height:100%;width:100%;border:0}
 .zone.r{background:linear-gradient(90deg,rgba(255,80,109,.32),rgba(255,80,109,.03));border-color:rgba(255,80,109,.85);color:#ff8498}
 .zone.s{background:linear-gradient(90deg,rgba(0,200,150,.32),rgba(0,200,150,.03));border-color:rgba(0,200,150,.85);color:#66e6c2}
 .zone em{font-style:normal;opacity:.8;margin-left:5px;font-size:8px}
-.patterns{margin-top:8px;font-size:12px}
-.patterns .pitem{display:flex;justify-content:space-between;padding:6px;border-radius:5px;margin-bottom:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.02)}
-.patterns .strong{background:linear-gradient(90deg, rgba(212,175,55,.06), rgba(212,175,55,.03));border-color:rgba(212,175,55,.08)}
 .analysis{padding:10px 12px;border-top:1px solid var(--line);background:#080f1a}
 .analysis .atitle{font-size:10px;color:var(--gold);letter-spacing:1px;font-weight:700;margin-bottom:7px;display:flex;justify-content:space-between}
 .analysis .atitle em{font-style:normal;color:var(--green);font-size:8px}
@@ -157,7 +154,6 @@ iframe{height:100%;width:100%;border:0}
           <div class="signalrow"><div class="sigtxt" id="sigTxt">—</div><div class="conf" id="sigConf">—</div></div>
           <div class="why" id="sigWhy">Bot indikatörleri okuyor…</div>
           <div class="trigger wait" id="trigger">◇ GÖZLEM — Emir eşiği %87</div>
-          <!-- Aggregation & Patterns will be injected here -->
         </div>
         <div class="tradecard">
           <h4>⚡ SCALP PLAN <span class="tf">15M / 30M</span></h4>
@@ -328,10 +324,8 @@ function addFlow(){
 
 /* ---------- SIGNAL HISTORY & AGGREGATION (persistence via localStorage) ---------- */
 const SIG_STORE_PREFIX = 'valens_signals_'; // key per symbol
-const CANDLE_STORE_PREFIX = 'valens_candles_'; // key per symbol
 
 function getStoreKey(sym){ return SIG_STORE_PREFIX + sym.replace(/[:\/]/g,'_'); }
-function getCandleKey(sym){ return CANDLE_STORE_PREFIX + sym.replace(/[:\/]/g,'_'); }
 
 function loadSignalStore(sym){
   try{
@@ -345,17 +339,6 @@ function loadSignalStore(sym){
 }
 function saveSignalStore(sym,store){
   try{ localStorage.setItem(getStoreKey(sym), JSON.stringify(store)); }catch(e){console.warn('save err',e); }
-}
-
-function loadCandles(sym){
-  try{
-    const raw = localStorage.getItem(getCandleKey(sym));
-    if(!raw) return {};
-    return JSON.parse(raw);
-  }catch(e){ console.warn('load candles err', e); return {}; }
-}
-function saveCandles(sym,store){
-  try{ localStorage.setItem(getCandleKey(sym), JSON.stringify(store)); }catch(e){console.warn('save candles err',e); }
 }
 
 // returns numeric minutes for INT (handles 'D' as 1440)
@@ -433,7 +416,7 @@ function ensureAggUI(){
   el.id = 'aggSignal';
   el.style.marginTop = '8px';
   el.style.font = "700 11px 'IBM Plex Mono'";
-  el.innerHTML = '<div style="display:flex;gap:8px;align-items:center;"><div id="aggSummary" style="color:var(--muted);font-size:12px"></div><div id="aggBadge" style="padding:4px 8px;border-radius:6px;background:rgba(255,255,255,0.03);color:var(--gold);font-size:11px"></div></div><div id="aggDetail" style="margin-top:6px;font-size:10px;color:var(--muted)"></div><div id="patternList" class="patterns" style="margin-top:8px"></div>';
+  el.innerHTML = '<div style="display:flex;gap:8px;align-items:center;"><div id="aggSummary" style="color:var(--muted);font-size:12px"></div><div id="aggBadge" style="padding:4px 8px;border-radius:6px;background:rgba(255,255,255,0.03);color:var(--gold);font-size:11px"></div></div><div id="aggDetail" style="margin-top:6px;font-size:10px;color:var(--muted)"></div>';
   container.appendChild(el);
   return el;
 }
@@ -471,261 +454,6 @@ function updateAggUI(){
     detail.innerHTML = '3 MUM ONAY: Yok';
     detail.style.color = 'var(--muted)';
   }
-
-  // update pattern list (detected patterns for current TF)
-  const patterns = detectPatternsForTF(CUR, INT);
-  const pnode = document.getElementById('patternList');
-  pnode.innerHTML = '';
-  if(!patterns || patterns.length===0){
-    pnode.innerHTML = '<div style="color:var(--muted);font-size:11px">Mum paterni bulunamadı.</div>';
-  } else {
-    patterns.forEach(p=>{
-      const div = document.createElement('div');
-      div.className='pitem '+(p.strong?'strong':'');
-      div.innerHTML = '<div style="font-weight:700">'+p.name+'</div><div style="color:'+(p.side==='BUY'?'var(--green)':p.side==='SELL'?'var(--red)':'var(--muted)')+'">'+(p.side?('· '+p.side):'')+'</div>';
-      pnode.appendChild(div);
-    });
-    // highlight if any pattern aligns with current direction + aggregation
-    const currentDir = getCurrentRawDir();
-    const match = patterns.find(pp => (pp.side==='BUY' && currentDir>0) || (pp.side==='SELL' && currentDir<0));
-    if(match){
-      // add short emphasized note
-      const em = document.createElement('div');
-      em.style.marginTop='6px'; em.style.fontSize='12px'; em.style.fontWeight='800';
-      em.style.color = match.side==='BUY' ? 'var(--green)' : 'var(--red)';
-      em.textContent = 'PATTERN MATCH · ' + match.name + ' · ' + match.side + ' (uyanıyor)';
-      pnode.insertBefore(em, pnode.firstChild);
-    }
-  }
-}
-
-/* ---------- CANDLE CONSTRUCTION & PATTERN DETECTION ---------- */
-/* We maintain per-symbol candle arrays (persisted) built from streaming price ticks (simulated).
-   For selected TF (INT), we update the current candle (open/high/low/close). On candle close we persist.
-*/
-
-function ensureCandleStore(sym){
-  const s = loadCandles(sym);
-  if(!s.tfs) s.tfs = {}; // object keyed by tfMin -> array of candles
-  return s;
-}
-
-function updateCurrentCandle(sym, tf, price){
-  const tfMin = tfMinutes(tf);
-  const cIdx = candleIndexForNow(tfMin);
-  const store = ensureCandleStore(sym);
-  store.tfs = store.tfs || {};
-  store.tfs[tfMin] = store.tfs[tfMin] || [];
-  const arr = store.tfs[tfMin];
-  const last = arr.length?arr[arr.length-1]:null;
-  if(last && last.candle === cIdx){
-    // update OHLC
-    last.high = Math.max(last.high, price);
-    last.low = Math.min(last.low, price);
-    last.close = price;
-    last.ts = Date.now();
-  } else {
-    // new candle
-    const newC = {candle:cIdx, tf:tfMin, ts:Date.now(), open:price, high:price, low:price, close:price};
-    arr.push(newC);
-    // keep bounded
-    if(arr.length>1500) arr.splice(0, arr.length-1000);
-  }
-  saveCandles(sym, store);
-}
-
-function getCandles(sym, tf, count){
-  const tfMin = tfMinutes(tf);
-  const store = loadCandles(sym);
-  if(!store.tfs || !store.tfs[tfMin]) return [];
-  const arr = store.tfs[tfMin];
-  if(!count) return arr.slice();
-  return arr.slice(-count);
-}
-
-function bodySize(c){ return Math.abs(c.close - c.open); }
-function candleRange(c){ return c.high - c.low; }
-function isBullish(c){ return c.close > c.open; }
-function isBearish(c){ return c.close < c.open; }
-function bodyPct(c){ const r = candleRange(c); return r===0?0:(bodySize(c)/r); }
-function midPoint(c){ return (c.open + c.close)/2; }
-
-/* ---------- Pattern detection helpers (subset implemented with robust heuristics) ---------- */
-
-function detectBullishEngulfing(candles){
-  if(candles.length<2) return null;
-  const a = candles[candles.length-2];
-  const b = candles[candles.length-1];
-  if(isBearish(a) && isBullish(b) && b.open < a.close && b.close > a.open) return {name:'Bullish Engulfing', side:'BUY', strong:true};
-  return null;
-}
-function detectBearishEngulfing(candles){
-  if(candles.length<2) return null;
-  const a = candles[candles.length-2];
-  const b = candles[candles.length-1];
-  if(isBullish(a) && isBearish(b) && b.open > a.close && b.close < a.open) return {name:'Bearish Engulfing', side:'SELL', strong:true};
-  return null;
-}
-function detectHammer(c){
-  // small body near top, long lower shadow
-  if(!c) return null;
-  const body = bodySize(c), rng = candleRange(c);
-  if(rng===0) return null;
-  const lower = Math.min(c.open,c.close) - c.low;
-  const upper = c.high - Math.max(c.open,c.close);
-  if(body/rng < 0.35 && lower >= body*2 && upper <= body*1.2 && lower > rng*0.25 && isBullish(c)) return {name:'Hammer', side:'BUY', strong:false};
-  return null;
-}
-function detectInvertedHammer(c){
-  const c = arguments[0];
-  if(!c) return null;
-  const body = bodySize(c), rng = candleRange(c);
-  if(rng===0) return null;
-  const lower = Math.min(c.open,c.close) - c.low;
-  const upper = c.high - Math.max(c.open,c.close);
-  if(body/rng < 0.35 && upper >= body*2 && lower <= body*1.2 && upper > rng*0.25 && isBullish(c)) return {name:'Inverted Hammer', side:'BUY', strong:false};
-  return null;
-}
-function detectDragonflyDoji(c){
-  const c = arguments[0];
-  if(!c) return null;
-  const body = bodySize(c), rng = candleRange(c);
-  if(rng===0) return null;
-  const lower = Math.min(c.open,c.close) - c.low;
-  if(body <= rng*0.05 && lower >= rng*0.6) return {name:'Dragonfly Doji', side:'BUY', strong:false};
-  return null;
-}
-function detectPiercingLine(candles){
-  if(candles.length<2) return null;
-  const a=candles[candles.length-2], b=candles[candles.length-1];
-  if(isBearish(a) && isBullish(b) && b.open < a.close && b.close > (a.open + a.close)/2) return {name:'Piercing Line', side:'BUY', strong:true};
-  return null;
-}
-function detectBullishHarami(candles){
-  if(candles.length<2) return null;
-  const a=candles[candles.length-2], b=candles[candles.length-1];
-  if(isBearish(a) && isBullish(b) && b.open > a.close && b.close < a.open) return {name:'Bullish Harami', side:'BUY', strong:false};
-  return null;
-}
-function detectMorningStar(candles){
-  if(candles.length<3) return null;
-  const a=candles[candles.length-3], b=candles[candles.length-2], c=candles[candles.length-1];
-  const longBear = isBearish(a) && bodySize(a) > candleRange(a)*0.5;
-  const smallMiddle = bodySize(b) < candleRange(a)*0.35;
-  const longBull = isBullish(c) && c.close > a.open;
-  if(longBear && smallMiddle && longBull) return {name:'Morning Star', side:'BUY', strong:true};
-  return null;
-}
-function detectThreeWhiteSoldiers(candles){
-  if(candles.length<3) return null;
-  const a=candles[candles.length-3], b=candles[candles.length-2], c=candles[candles.length-1];
-  if(isBullish(a) && isBullish(b) && isBullish(c) &&
-     b.open > a.open && b.close > a.close &&
-     c.open > b.open && c.close > b.close &&
-     bodySize(a)>0 && bodySize(b)>0 && bodySize(c)>0) return {name:'Three White Soldiers', side:'BUY', strong:true};
-  return null;
-}
-function detectThreeBlackCrows(candles){
-  if(candles.length<3) return null;
-  const a=candles[candles.length-3], b=candles[candles.length-2], c=candles[candles.length-1];
-  if(isBearish(a) && isBearish(b) && isBearish(c) &&
-     b.open < a.open && b.close < a.close &&
-     c.open < b.open && c.close < b.close) return {name:'Three Black Crows', side:'SELL', strong:true};
-  return null;
-}
-function detectTweezerBottom(candles){
-  if(candles.length<2) return null;
-  const a=candles[candles.length-2], b=candles[candles.length-1];
-  const lowsEqual = Math.abs(a.low - b.low) <= (Math.max(candleRange(a), candleRange(b)) * 0.02);
-  if(lowsEqual && isBearish(a) && isBullish(b)) return {name:'Tweezer Bottom', side:'BUY', strong:false};
-  return null;
-}
-function detectTweezerTop(candles){
-  if(candles.length<2) return null;
-  const a=candles[candles.length-2], b=candles[candles.length-1];
-  const highsEqual = Math.abs(a.high - b.high) <= (Math.max(candleRange(a), candleRange(b)) * 0.02);
-  if(highsEqual && isBullish(a) && isBearish(b)) return {name:'Tweezer Top', side:'SELL', strong:false};
-  return null;
-}
-function detectBullishKicker(candles){
-  if(candles.length<2) return null;
-  const a=candles[candles.length-2], b=candles[candles.length-1];
-  if(isBearish(a) && isBullish(b) && b.open > a.close && bodySize(b) > bodySize(a)*1.2) return {name:'Bullish Kicker', side:'BUY', strong:true};
-  return null;
-}
-function detectBearishKicker(candles){
-  if(candles.length<2) return null;
-  const a=candles[candles.length-2], b=candles[candles.length-1];
-  if(isBullish(a) && isBearish(b) && b.open < a.close && bodySize(b) > bodySize(a)*1.2) return {name:'Bearish Kicker', side:'SELL', strong:true};
-  return null;
-}
-function detectDoji(c){
-  return bodySize(c) <= (candleRange(c) * 0.1);
-}
-function detectAbandonedBaby(candles){
-  if(candles.length<3) return null;
-  const a=candles[candles.length-3], b=candles[candles.length-2], c=candles[candles.length-1];
-  // gap down doji then gap up bullish
-  if(isBearish(a) && detectDoji(b) && isBullish(c)){
-    if(b.low < a.close - (candleRange(a)*0.2) && c.open > b.close + (candleRange(c)*0.05) && c.open > b.high) {
-      return {name:'Abandoned Baby', side:'BUY', strong:true};
-    }
-  }
-  // bearish version
-  if(isBullish(a) && detectDoji(b) && isBearish(c)){
-    if(b.high > a.close + (candleRange(a)*0.2) && c.open < b.close - (candleRange(c)*0.05) && c.open < b.low){
-      return {name:'Abandoned Baby (Bearish)', side:'SELL', strong:true};
-    }
-  }
-  return null;
-}
-
-/* A generic detector that runs multiple pattern checks and returns list */
-function detectPatternsForTF(sym, tf){
-  const candles = getCandles(sym, tf, 12); // last 12 candles should cover most multi-candle patterns
-  if(!candles || candles.length===0) return [];
-  const res = [];
-  // last single candle checks
-  const last = candles[candles.length-1];
-  const h = detectHammer(last); if(h) res.push(h);
-  const inv = detectInvertedHammer(last); if(inv) res.push(inv);
-  const dd = detectDragonflyDoji(last); if(dd) res.push(dd);
-
-  // multi-candle patterns
-  const eng = detectBullishEngulfing(candles); if(eng) res.push(eng);
-  const beng = detectBearishEngulfing(candles); if(beng) res.push(beng);
-  const pier = detectPiercingLine(candles); if(pier) res.push(pier);
-  const har = detectBullishHarami(candles); if(har) res.push(har);
-  const morning = detectMorningStar(candles); if(morning) res.push(morning);
-  const threew = detectThreeWhiteSoldiers(candles); if(threew) res.push(threew);
-  const threeb = detectThreeBlackCrows(candles); if(threeb) res.push(threeb);
-  const tweeB = detectTweezerBottom(candles); if(tweeB) res.push(tweeB);
-  const tweeT = detectTweezerTop(candles); if(tweeT) res.push(tweeT);
-  const kickerB = detectBullishKicker(candles); if(kickerB) res.push(kickerB);
-  const kickerS = detectBearishKicker(candles); if(kickerS) res.push(kickerS);
-  const abd = detectAbandonedBaby(candles); if(abd) res.push(abd);
-
-  // Additional approximate multi-candle patterns (Three Inside/Outside, Morning variations)
-  // Three Inside Up
-  if(candles.length>=3){
-    const a=candles[candles.length-3], b=candles[candles.length-2], c=candles[candles.length-1];
-    if(isBearish(a) && isBullish(b) && b.close > (a.open + a.close)/2 && isBullish(c) && c.close > a.open) res.push({name:'Three Inside Up', side:'BUY', strong:true});
-    if(isBullish(a) && isBearish(b) && b.close < (a.open + a.close)/2 && isBearish(c) && c.close < a.open) res.push({name:'Three Inside Down', side:'SELL', strong:true});
-  }
-
-  // Rising Three Methods approx
-  if(candles.length>=5){
-    const last5 = candles.slice(-5);
-    const [c1,c2,c3,c4,c5] = last5;
-    if(isBullish(c1) && isBearish(c2) && isBearish(c3) && isBearish(c4) && isBullish(c5) && c5.close > c1.close) res.push({name:'Rising Three Methods', side:'BUY', strong:false});
-    if(isBearish(c1) && isBullish(c2) && isBullish(c3) && isBullish(c4) && isBearish(c5) && c5.close < c1.close) res.push({name:'Falling Three Methods', side:'SELL', strong:false});
-  }
-
-  // ensure uniqueness by name
-  const uniq = [];
-  const names = new Set();
-  res.forEach(r=>{ if(!names.has(r.name)){ uniq.push(r); names.add(r.name); }});
-  return uniq;
 }
 
 /* ---------- AI BOT · 6 İNDİKATÖR & EMİR EŞİĞİ LOGİĞİ (KESİN İŞLEM BADGES) ---------- */
@@ -738,18 +466,10 @@ function seedHist(){
 function ema(arr,p){let k=2/(p+1),e=arr[0];for(let i=1;i<arr.length;i++)e=arr[i]*k+e*(1-k);return e;}
 function calcRSI(arr,p){let g=0,l=0;for(let i=arr.length-p;i<arr.length;i++){let d=arr[i]-arr[i-1];if(d>=0)g+=d;else l-=d;}if(l===0)return 100;let rs=(g/p)/(l/p);return 100-100/(1+rs);}
 
-let latestRawDir = 0; // expose for pattern cross-checks
-function getCurrentRawDir(){ return latestRawDir; }
-
 function botTick(){
  const cfg=SYMS[CUR];
  price+=rnd(-cfg.step*1.1,cfg.step*0.98); hist.push(price); if(hist.length>240)hist.shift();
  const last=hist[hist.length-1];
- // update candles store for currently selected timeframe and also some others (to keep multi-timeframe detection)
- updateCurrentCandle(CUR, INT, last);
- // we also update common timeframes so that user switching TF shows immediate patterns
- ['15','30','60','240'].forEach(tf=>{ if(tf!==INT) updateCurrentCandle(CUR, tf, last); });
-
  const rsi=calcRSI(hist,14);
  const macd=ema(hist.slice(-40),12)-ema(hist.slice(-60),26);
  const ema50=ema(hist.slice(-90),50), ema200=ema(hist.slice(-200),200);
@@ -764,7 +484,7 @@ function botTick(){
  score+= macd>0?0.6:-0.6;
  score+= ema50>ema200?0.5:-0.5;
  score+= bollPct>75?-0.3: bollPct<25?0.3:0;
- score+= stoch>80?-0.3:stoch<20?0.3:0;
+ score+= stoch>80?-0.3: stoch<20?0.3:0;
  score+= adx>25?(macd>0?0.2:-0.2):0;
  const conf=Math.min(92,Math.max(52,Math.round(50+Math.abs(score)*22+rnd(-4,4))));
  const THRESHOLD=87;
@@ -774,8 +494,6 @@ function botTick(){
  if(score>0.6) rawDir = 1;
  else if(score<-0.6) rawDir = -1;
  else rawDir = 0;
-
- latestRawDir = rawDir; // store globally for cross-check
 
  const armed = conf >= THRESHOLD && rawDir !== 0;
 
